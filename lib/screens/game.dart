@@ -227,7 +227,7 @@ class _GameScreenState extends State<GameScreen> {
                         ),
                       );
                     },
-                    icon: Icon(Icons.history))
+                    icon: const Icon(Icons.history))
               ],
             ),
           ],

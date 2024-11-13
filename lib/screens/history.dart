@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:four_in_a_row/models/game_board.dart';
 import 'package:four_in_a_row/models/game_history.dart';
 import 'package:four_in_a_row/models/marble.dart';
-import 'package:four_in_a_row/screens/game.dart';
 import 'package:four_in_a_row/theme/app_theme.dart';
+import 'package:four_in_a_row/widgets/gradient_element.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -52,6 +52,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           'Game History',
           style: context.theme.textTheme.titleMedium,
         ),
+        foregroundColor: Colors.white,
         backgroundColor: context.theme.scaffoldBackgroundColor,
         actions: [
           IconButton(
@@ -70,7 +71,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ],
       ),
       body: gameHistory.isEmpty
-          ? const Center(child: Text("No game history available."))
+          ? Center(
+              child: Text(
+              "No game history available.",
+              style: context.theme.textTheme.labelMedium,
+            ))
           : ListView.builder(
               itemCount: gameHistory.length,
               itemBuilder: (context, gameIndex) {
@@ -82,20 +87,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'Game $gameNumber',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      child: GradientElement(
+                        child: Text(
+                          'Game $gameNumber',
+                          style: context.theme.textTheme.titleMedium,
                         ),
                       ),
                     ),
                     ...gameData.map((game) => ListTile(
                           title: Text(
                             'Player ${game.player == Player.player1 ? '1' : '2'}',
+                            style: context.theme.textTheme.bodyMedium,
                           ),
-                          subtitle: Text(
-                            'Board State: ${jsonEncode(game.boardState.toJson())}',
+                          subtitle: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 90),
+                            child: buildBoardGrid(game.boardState),
                           ),
                         )),
                     const Divider(),
@@ -103,6 +109,49 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 );
               },
             ),
+    );
+  }
+
+  Widget buildBoardGrid(GameBoard boardState) {
+    return AspectRatio(
+      aspectRatio: 1,
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 4,
+          mainAxisSpacing: 2,
+          crossAxisSpacing: 2,
+        ),
+        itemCount: 16,
+        itemBuilder: (context, index) {
+          final row = index ~/ 4;
+          final col = index % 4;
+          final marble = boardState.board[row][col];
+
+          return Container(
+            decoration: BoxDecoration(
+              color: marble == null
+                  ? Colors.grey[200]
+                  : (marble.player == Player.player1
+                      ? Colors.blue
+                      : Colors.purple),
+              border: Border.all(color: Colors.black12),
+            ),
+            child: Center(
+              child: marble == null
+                  ? const Text("")
+                  : Text(
+                      marble.player == Player.player1 ? "1" : "2",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

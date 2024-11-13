@@ -33,6 +33,21 @@ extension ThemeExtension on BuildContext {
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
+          bodyLarge: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          bodyMedium: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          bodySmall: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
           labelMedium: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w400,
