@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:four_in_a_row/constants/game_state_enums.dart';
 import 'package:four_in_a_row/models/game_board.dart';
 import 'package:four_in_a_row/models/marble.dart';
-import 'package:four_in_a_row/constants/theme/app_theme.dart';
+import 'package:four_in_a_row/theme/app_theme.dart';
+import 'package:four_in_a_row/widgets/gradient_element.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -71,16 +72,25 @@ class _GameScreenState extends State<GameScreen> {
       builder: (context) {
         return AlertDialog(
           title: Text(
-              'Player ${currentPlayer == Player.player1 ? "1" : "2"} wins!'),
-          content: const Text(
-              'Would you like to restart the game or go back to the main menu?'),
+            'Player ${currentPlayer == Player.player1 ? "1" : "2"} wins!',
+            style: context.theme.textTheme.titleMedium,
+          ),
+          content: Text(
+            'Would you like to restart the game or go back to the main menu?',
+            style: context.theme.textTheme.labelSmall,
+          ),
+          backgroundColor: context.theme.dialogBackgroundColor,
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 startGame();
               },
-              child: const Text('Restart Game'),
+              child: GradientElement(
+                  child: Text(
+                'Restart Game',
+                style: context.theme.textTheme.labelMedium,
+              )),
             ),
             TextButton(
               onPressed: () {
@@ -89,7 +99,11 @@ class _GameScreenState extends State<GameScreen> {
                   gameState = GameState.start;
                 });
               },
-              child: const Text('Main Menu'),
+              child: GradientElement(
+                  child: Text(
+                'Main Menu',
+                style: context.theme.textTheme.labelMedium,
+              )),
             ),
           ],
         );
@@ -97,32 +111,137 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  // Widget buildCell(int row, int col) {
+  //   final marble = gameBoard.board[row][col];
+  //   return GestureDetector(
+  //     onTap: () {
+  //       _onCellTapped(row, col);
+  //     },
+  //     child: Container(
+  //       decoration: BoxDecoration(
+  //         shape: BoxShape.circle,
+  //         gradient: LinearGradient(
+  //           colors: [
+  //             context.theme.primaryColor,
+  //             context.theme.highlightColor,
+  //           ],
+  //         ),
+  //       ),
+  //       padding: const EdgeInsets.all(4),
+  //       child: Container(
+  //         decoration: BoxDecoration(
+  //           shape: BoxShape.circle,
+  //           color: marble == null
+  //               ? context.theme.scaffoldBackgroundColor
+  //               : (marble.player == Player.player1
+  //                   ? Colors.blue
+  //                   : Colors.purple),
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
+
   Widget buildCell(int row, int col) {
     final marble = gameBoard.board[row][col];
-    return GestureDetector(
-      onTap: () {
-        _onCellTapped(row, col);
+    return DragTarget<Player>(
+      onAccept: (player) {
+        if (currentPlayer == player) {
+          _onCellTapped(row, col);
+        }
       },
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [
-              context.theme.primaryColor,
-              context.theme.highlightColor,
-            ],
-          ),
-        ),
-        padding: const EdgeInsets.all(4),
-        child: Container(
+      builder: (context, candidateData, rejectedData) {
+        return Container(
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: marble == null
-                ? context.theme.scaffoldBackgroundColor
-                : (marble.player == Player.player1
-                    ? Colors.blue
-                    : Colors.purple),
+            gradient: marble == null
+                ? LinearGradient(
+                    colors: [
+                      context.theme.primaryColor,
+                      context.theme.highlightColor,
+                    ],
+                  )
+                : null,
           ),
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: marble == null
+                  ? context.theme.scaffoldBackgroundColor
+                  : (marble.player == Player.player1
+                      ? Colors.blue
+                      : Colors.purple),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget buildDraggableMarble1() {
+    return AbsorbPointer(
+      absorbing: currentPlayer != Player.player1,
+      child: Draggable<Player>(
+        data: currentPlayer,
+        // child remaining behind when item dragged
+        feedback: Icon(
+          Icons.circle,
+          color: currentPlayer == Player.player1
+              ? Colors.blue
+              : Colors.blue.withOpacity(0.2),
+          size: 40,
+        ),
+        childWhenDragging: Opacity(
+          opacity: 0.5,
+          child: Icon(
+            Icons.circle,
+            color: currentPlayer == Player.player1
+                ? Colors.blue
+                : Colors.blue.withOpacity(0.2),
+            size: 40,
+          ),
+        ),
+        child: Icon(
+          Icons.circle,
+          color: currentPlayer == Player.player1
+              ? Colors.blue
+              : Colors.blue.withOpacity(0.2),
+          size: 40,
+        ),
+      ),
+    );
+  }
+
+  Widget buildDraggableMarble2() {
+    return AbsorbPointer(
+      absorbing: currentPlayer != Player.player2,
+      child: Draggable<Player>(
+        data: currentPlayer,
+        // child remaining behind when item dragged
+        feedback: Icon(
+          Icons.circle,
+          color: currentPlayer == Player.player1
+              ? Colors.purple.withOpacity(0.2)
+              : Colors.purple,
+          size: 40,
+        ),
+        childWhenDragging: Opacity(
+          opacity: 0.5,
+          child: Icon(
+            Icons.circle,
+            color: currentPlayer == Player.player1
+                ? Colors.purple.withOpacity(0.2)
+                : Colors.purple,
+            size: 40,
+          ),
+        ),
+        child: Icon(
+          Icons.circle,
+          color: currentPlayer == Player.player1
+              ? Colors.purple.withOpacity(0.2)
+              : Colors.purple,
+          size: 40,
         ),
       ),
     );
@@ -132,17 +251,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: ShaderMask(
-          shaderCallback: (bounds) {
-            return LinearGradient(
-              colors: [
-                context.theme.primaryColor,
-                context.theme.highlightColor,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ).createShader(bounds);
-          },
+        title: GradientElement(
           child: Text(
             'Marble Game',
             style: context.theme.textTheme.titleMedium,
@@ -162,15 +271,29 @@ class _GameScreenState extends State<GameScreen> {
               )
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  if (gameWon)
-                    Text(
-                        'Player ${currentPlayer == Player.player1 ? "1" : "2"} wins!',
-                        style: context.theme.textTheme.titleMedium),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      buildDraggableMarble2(),
+                      const SizedBox(width: 20),
+                      Transform.rotate(
+                        angle: 3.14159, // pie value (radians)
+                        child: Text(
+                          currentPlayer == Player.player2 ? "Your turn" : "",
+                          style: context.theme.textTheme.labelMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
                   SizedBox(
-                    height: 400,
-                    width: 400,
+                    height: 300,
+                    width: 300,
                     child: GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 4),
@@ -182,9 +305,16 @@ class _GameScreenState extends State<GameScreen> {
                       itemCount: 16,
                     ),
                   ),
-                  Text(
-                    'Player ${currentPlayer == Player.player1 ? "1" : "2"}\'s turn',
-                    style: context.theme.textTheme.labelMedium,
+                  const SizedBox(height: 30),
+                  Row(
+                    children: [
+                      Text(
+                        currentPlayer == Player.player1 ? "Your turn" : "",
+                        style: context.theme.textTheme.labelMedium,
+                      ),
+                      const SizedBox(width: 20),
+                      buildDraggableMarble1(),
+                    ],
                   ),
                 ],
               ),

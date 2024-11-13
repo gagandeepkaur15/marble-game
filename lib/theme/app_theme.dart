@@ -6,7 +6,7 @@ class AppColors {
   static const Color primary = Color(0xFF27FFEF);
   static const Color secondary = Color(0xFFB9FFB3);
   static const Color white = Color(0xFFFFFFFF);
-  static const Color grey = Color.fromARGB(255, 178, 177, 177);
+  static const Color grey = Color.fromARGB(255, 45, 45, 45);
 }
 
 extension ThemeExtension on BuildContext {
@@ -15,7 +15,13 @@ extension ThemeExtension on BuildContext {
         scaffoldBackgroundColor: AppColors.background,
         primaryColor: AppColors.primary,
         highlightColor: AppColors.secondary,
-        shadowColor: AppColors.grey,
+        cardColor: AppColors.grey,
+        dialogBackgroundColor: AppColors.grey,
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+          ),
+        ),
         textTheme: TextTheme(
           titleMedium: GoogleFonts.play(
             fontSize: 24,
@@ -24,6 +30,11 @@ extension ThemeExtension on BuildContext {
           ),
           labelMedium: GoogleFonts.inter(
             fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          labelSmall: GoogleFonts.inter(
+            fontSize: 12,
             fontWeight: FontWeight.w400,
             color: Colors.white,
           ),
