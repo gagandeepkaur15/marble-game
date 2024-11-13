@@ -6,9 +6,9 @@ import 'package:four_in_a_row/constants/game_state_enums.dart';
 import 'package:four_in_a_row/models/game_board.dart';
 import 'package:four_in_a_row/models/game_history.dart';
 import 'package:four_in_a_row/models/marble.dart';
-import 'package:four_in_a_row/screens/history.dart';
 import 'package:four_in_a_row/theme/app_theme.dart';
 import 'package:four_in_a_row/widgets/gradient_element.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class GameScreen extends StatefulWidget {
@@ -30,8 +30,9 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    _loadGames();
-    startGame();
+    _loadGames().then((_) {
+      startGame();
+    });
   }
 
   void startGame() {
@@ -71,12 +72,12 @@ class _GameScreenState extends State<GameScreen> {
     }
 
     setState(() {
-      gameWon = gameBoard.checkWin(currentPlayer);
+      gameWon = gameBoard.checkWin();
     });
 
     saveMoveToHistory();
 
-    if (gameWon) {
+    if (gameWon && gameBoard.winningPlayer != null) {
       showGameEndDialog();
       // return;
     } else {
@@ -94,10 +95,10 @@ class _GameScreenState extends State<GameScreen> {
         }
       }).then((_) {
         setState(() {
-          gameWon = gameBoard.checkWin(currentPlayer);
+          gameWon = gameBoard.checkWin();
         });
 
-        if (gameWon) {
+        if (gameWon && gameBoard.winningPlayer != null) {
           showGameEndDialog();
           // return;
         }
@@ -220,12 +221,7 @@ class _GameScreenState extends State<GameScreen> {
                 buildDraggableMarble1(),
                 IconButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const HistoryScreen(),
-                        ),
-                      );
+                      context.push('/history-screen');
                     },
                     icon: const Icon(Icons.history))
               ],
@@ -243,7 +239,7 @@ class _GameScreenState extends State<GameScreen> {
         timer?.cancel();
         return AlertDialog(
           title: Text(
-            'Player ${currentPlayer == Player.player1 ? "1" : "2"} wins!',
+            'Player ${gameBoard.winningPlayer == Player.player1 ? '1' : '2'} wins!',
             style: context.theme.textTheme.titleMedium,
           ),
           content: Text(
@@ -265,7 +261,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                context.pop();
                 setState(() {
                   gameState = GameState.start;
                 });

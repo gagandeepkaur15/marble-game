@@ -6,6 +6,7 @@ import 'package:four_in_a_row/models/game_history.dart';
 import 'package:four_in_a_row/models/marble.dart';
 import 'package:four_in_a_row/theme/app_theme.dart';
 import 'package:four_in_a_row/widgets/gradient_element.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -48,9 +49,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Game History',
-          style: context.theme.textTheme.titleMedium,
+        automaticallyImplyLeading: false,
+        title: Row(
+          children: [
+            IconButton(
+              onPressed: () {
+                context.pop();
+              },
+              icon:const Icon(Icons.arrow_back),
+              color: Colors.white,
+            ),
+            Text(
+              'Game History',
+              style: context.theme.textTheme.titleMedium,
+            ),
+          ],
         ),
         foregroundColor: Colors.white,
         backgroundColor: context.theme.scaffoldBackgroundColor,
