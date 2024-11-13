@@ -5,6 +5,7 @@ class GameBoard {
   List<List<Marble?>> board;
 
   GameBoard() : board = List.generate(4, (_) => List.filled(4, null));
+  GameBoard.withBoard(this.board);
 
   bool placeMarble(int row, int col, Marble marble) {
     if (board[row][col] == null) {
@@ -93,5 +94,27 @@ class GameBoard {
 
   bool _isFourInARow(List<Marble?> line, Player player) {
     return line.every((marble) => marble?.player == player);
+  }
+
+  GameBoard clone() {
+    List<List<Marble?>> newBoard =
+        board.map((row) => row.map((cell) => cell?.clone()).toList()).toList();
+    return GameBoard.withBoard(newBoard);
+  }
+
+  GameBoard.fromJson(Map<String, dynamic> json)
+    : board = List<List<Marble?>>.from(
+        json['board'].map((row) => List<Marble?>.from(
+          row.map((cell) => cell != null ? Marble.fromJson(cell) : null),
+        )),
+      );
+
+
+  Map<String, dynamic> toJson() {
+    return {
+      'board': board
+          .map((row) => row.map((cell) => cell?.toJson()).toList())
+          .toList(),
+    };
   }
 }

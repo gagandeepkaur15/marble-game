@@ -23,6 +23,11 @@ extension ThemeExtension on BuildContext {
           ),
         ),
         textTheme: TextTheme(
+          titleLarge: GoogleFonts.play(
+            fontSize: 50,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
           titleMedium: GoogleFonts.play(
             fontSize: 24,
             fontWeight: FontWeight.w600,

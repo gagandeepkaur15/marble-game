@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:four_in_a_row/screens/game.dart';
+import 'package:four_in_a_row/routes/routes.dart';
+import 'package:four_in_a_row/theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -10,13 +11,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        scaffoldBackgroundColor: AppColors.background,
       ),
-      home: const GameScreen(),
+      routerConfig: router,
     );
   }
 }

@@ -1,9 +1,15 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:four_in_a_row/constants/game_state_enums.dart';
 import 'package:four_in_a_row/models/game_board.dart';
+import 'package:four_in_a_row/models/game_history.dart';
 import 'package:four_in_a_row/models/marble.dart';
+import 'package:four_in_a_row/screens/history.dart';
 import 'package:four_in_a_row/theme/app_theme.dart';
 import 'package:four_in_a_row/widgets/gradient_element.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -17,6 +23,16 @@ class _GameScreenState extends State<GameScreen> {
   Player currentPlayer = Player.player1;
   bool gameWon = false;
   GameState gameState = GameState.start;
+  int timeLeft = 10;
+  Timer? timer;
+  List<List<GameHistory>> gameHistory = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGames();
+    startGame();
+  }
 
   void startGame() {
     setState(() {
@@ -24,6 +40,28 @@ class _GameScreenState extends State<GameScreen> {
       gameBoard = GameBoard();
       currentPlayer = Player.player1;
       gameWon = false;
+      gameHistory.add([]);
+    });
+    startTimer();
+  }
+
+  void startTimer() {
+    timer?.cancel();
+    setState(() {
+      timeLeft = 10;
+    });
+    timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (timeLeft > 0) {
+        setState(() {
+          timeLeft--;
+        });
+      } else {
+        setState(() {
+          currentPlayer =
+              currentPlayer == Player.player1 ? Player.player2 : Player.player1;
+          timeLeft = 10;
+        });
+      }
     });
   }
 
@@ -36,16 +74,17 @@ class _GameScreenState extends State<GameScreen> {
       gameWon = gameBoard.checkWin(currentPlayer);
     });
 
+    saveMoveToHistory();
+
     if (gameWon) {
       showGameEndDialog();
       // return;
     } else {
       setState(() {
-        if (!gameWon) {
-          currentPlayer =
-              currentPlayer == Player.player1 ? Player.player2 : Player.player1;
-        }
+        currentPlayer =
+            currentPlayer == Player.player1 ? Player.player2 : Player.player1;
       });
+      startTimer();
 
       Future.delayed(const Duration(milliseconds: 300), () {
         if (!gameWon) {
@@ -66,10 +105,142 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  void saveMoveToHistory() {
+    if (gameHistory.isNotEmpty) {
+      gameHistory.last.add(
+        GameHistory(player: currentPlayer, boardState: gameBoard.clone()),
+      );
+      saveGamesToLocalStorage(gameHistory);
+    }
+  }
+
+  Future<void> saveGamesToLocalStorage(
+      List<List<GameHistory>> gameHistory) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> gamesJson = gameHistory.map((game) {
+      return jsonEncode(game
+          .map((gameHisObj) => {
+                'player': gameHisObj.player.toString(),
+                'board': gameHisObj.boardState.toJson(),
+              })
+          .toList());
+    }).toList();
+    await prefs.setStringList('gameHistory', gamesJson);
+  }
+
+  Future<void> _loadGames() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String>? savedGames = prefs.getStringList('gameHistory');
+
+    if (savedGames != null && savedGames.isNotEmpty) {
+      setState(() {
+        gameHistory = savedGames.map((gameJson) {
+          List<dynamic> gameHistory = jsonDecode(gameJson);
+          return gameHistory.map((gameHistoryData) {
+            final player = gameHistoryData['player'] == 'Player.player1'
+                ? Player.player1
+                : Player.player2;
+            final boardState = GameBoard.fromJson(gameHistoryData['board']);
+            return GameHistory(player: player, boardState: boardState);
+          }).toList();
+        }).toList();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Hero(
+          tag: 'marbleGameTitle',
+          child: GradientElement(
+            child: Text(
+              'Marble Game',
+              style: context.theme.textTheme.titleMedium,
+            ),
+          ),
+        ),
+        backgroundColor: context.theme.scaffoldBackgroundColor,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 35),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            buildTimerDisplay(),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                buildDraggableMarble2(),
+                const SizedBox(width: 20),
+                Transform.rotate(
+                  angle: 3.14159, // pie value (radians)
+                  child: Text(
+                    currentPlayer == Player.player2 ? "Your turn" : "",
+                    style: context.theme.textTheme.labelMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 30),
+            SizedBox(
+              height: 300,
+              width: 300,
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4),
+                itemBuilder: (context, index) {
+                  final row = index ~/ 4;
+                  final col = index % 4;
+                  return buildCell(row, col);
+                },
+                itemCount: 16,
+              ),
+            ),
+            const SizedBox(height: 30),
+            Row(
+              children: [
+                Text(
+                  currentPlayer == Player.player1 ? "Your turn" : "",
+                  style: context.theme.textTheme.labelMedium,
+                ),
+                const SizedBox(width: 20),
+                buildDraggableMarble1(),
+                IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HistoryScreen(),
+                        ),
+                      );
+                    },
+                    icon: Icon(Icons.history))
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void showGameEndDialog() {
     showDialog(
       context: context,
       builder: (context) {
+        timer?.cancel();
         return AlertDialog(
           title: Text(
             'Player ${currentPlayer == Player.player1 ? "1" : "2"} wins!',
@@ -247,77 +418,11 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: GradientElement(
-          child: Text(
-            'Marble Game',
-            style: context.theme.textTheme.titleMedium,
-          ),
-        ),
-        backgroundColor: context.theme.scaffoldBackgroundColor,
-      ),
-      backgroundColor: context.theme.scaffoldBackgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 35),
-        child: gameState == GameState.start
-            ? Center(
-                child: ElevatedButton(
-                  onPressed: startGame,
-                  child: const Text('Start Game'),
-                ),
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      buildDraggableMarble2(),
-                      const SizedBox(width: 20),
-                      Transform.rotate(
-                        angle: 3.14159, // pie value (radians)
-                        child: Text(
-                          currentPlayer == Player.player2 ? "Your turn" : "",
-                          style: context.theme.textTheme.labelMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-                  SizedBox(
-                    height: 300,
-                    width: 300,
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 4),
-                      itemBuilder: (context, index) {
-                        final row = index ~/ 4;
-                        final col = index % 4;
-                        return buildCell(row, col);
-                      },
-                      itemCount: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  Row(
-                    children: [
-                      Text(
-                        currentPlayer == Player.player1 ? "Your turn" : "",
-                        style: context.theme.textTheme.labelMedium,
-                      ),
-                      const SizedBox(width: 20),
-                      buildDraggableMarble1(),
-                    ],
-                  ),
-                ],
-              ),
+  Widget buildTimerDisplay() {
+    return Text(
+      'Time left: $timeLeft s',
+      style: context.theme.textTheme.labelMedium?.copyWith(
+        color: currentPlayer == Player.player1 ? Colors.blue : Colors.purple,
       ),
     );
   }
