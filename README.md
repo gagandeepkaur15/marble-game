@@ -45,4 +45,4 @@ You have successfully pulled, set up, and run the Marble Game project on your la
 
 Click on the image below to watch the screen recording:
 
-[![Screen Recording](https://github.com/username/repository/blob/main/assets/screenshot_thumbnail.jpg)](https://github.com/username/repository/blob/main/assets/screen_recording.mp4)
+[![Screen Recording]](https://github.com/gagandeepkaur15/repository/blob/master/assets/screen_recording.mp4)
