@@ -9,6 +9,30 @@ class StartGame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: context.theme.scaffoldBackgroundColor,
+        title: GestureDetector(
+          onTap: () {
+            context.push('/history-screen');
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                "View game history",
+                style: context.theme.textTheme.bodySmall,
+              ),
+              const SizedBox(
+                width: 10,
+              ),
+              const Icon(
+                Icons.history,
+                color: Colors.white,
+              ),
+            ],
+          ),
+        ),
+      ),
       body: Center(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,

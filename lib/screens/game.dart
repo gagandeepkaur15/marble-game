@@ -279,7 +279,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
             TextButton(
               onPressed: () {
-                context.pop();
+                context.push('/');
                 setState(() {
                   gameState = GameState.start;
                 });
