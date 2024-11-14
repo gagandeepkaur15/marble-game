@@ -18,7 +18,9 @@ class GameCellWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DragTarget<Player>(
+      // When player places marble on the target
       onAccept: (player) => onCellTapped(row, col),
+      // Building UI of the widget
       builder: (context, candidateData, rejectedData) {
         return Container(
           padding: const EdgeInsets.all(4),

@@ -5,6 +5,7 @@ import 'package:four_in_a_row/models/game_board.dart';
 import 'package:four_in_a_row/models/game_history.dart';
 import 'package:four_in_a_row/models/marble.dart';
 import 'package:four_in_a_row/theme/app_theme.dart';
+import 'package:four_in_a_row/utils/game_history.dart';
 import 'package:four_in_a_row/widgets/gradient_element.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,24 +26,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _loadGames();
   }
 
+  // Load previous games from local storage
   Future<void> _loadGames() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? savedGames = prefs.getStringList('gameHistory');
-
-    if (savedGames != null) {
-      setState(() {
-        gameHistory = savedGames.map((gameJson) {
-          List<dynamic> gameHistory = jsonDecode(gameJson);
-          return gameHistory.map((gameHistoryData) {
-            final player = gameHistoryData['player'] == 'Player.player1'
-                ? Player.player1
-                : Player.player2;
-            final boardState = GameBoard.fromJson(gameHistoryData['board']);
-            return GameHistory(player: player, boardState: boardState);
-          }).toList();
-        }).toList();
-      });
-    }
+    final loadedHistory = await GameHistoryUtils.loadGames();
+    setState(() {
+      gameHistory = loadedHistory;
+    });
   }
 
   @override
@@ -56,7 +45,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               onPressed: () {
                 context.pop();
               },
-              icon:const Icon(Icons.arrow_back),
+              icon: const Icon(Icons.arrow_back),
               color: Colors.white,
             ),
             Text(
@@ -68,6 +57,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         foregroundColor: Colors.white,
         backgroundColor: context.theme.scaffoldBackgroundColor,
         actions: [
+          // Delete History
           IconButton(
             icon: const Icon(
               Icons.delete,
@@ -125,6 +115,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  // Showing previous moves in 4x4 grid
   Widget buildBoardGrid(GameBoard boardState) {
     return AspectRatio(
       aspectRatio: 1,

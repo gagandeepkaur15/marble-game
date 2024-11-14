@@ -26,14 +26,14 @@ class _GameScreenState extends State<GameScreen> {
   Player currentPlayer = Player.player1;
   bool gameWon = false;
   GameState gameState = GameState.start;
-  int timeLeft = 10;
-  // Timer? timer;
   List<List<GameHistory>> gameHistory = [];
+  int timeLeft = 10; // Time given to each player
   late GameTimerUtils gameTimer;
 
   @override
   void initState() {
     super.initState();
+    // Loading previous games from shared preferences and then starting a new game
     GameHistoryUtils.loadGames().then((loadedHistory) {
       setState(() {
         gameHistory = loadedHistory;
@@ -48,8 +48,8 @@ class _GameScreenState extends State<GameScreen> {
       gameBoard = GameBoard();
       currentPlayer = Player.player1;
       gameWon = false;
-      gameHistory.add([]);
-      timeLeft = 10;
+      gameHistory.add([]); // For appending the new game to the previous history
+      // timeLeft = 10;
     });
     gameTimer = GameTimerUtils(
       onTick: (newTime) => setState(() => timeLeft = newTime),
@@ -57,31 +57,40 @@ class _GameScreenState extends State<GameScreen> {
         currentPlayer =
             currentPlayer == Player.player1 ? Player.player2 : Player.player1;
         timeLeft = 10;
-        gameTimer.start();
+        gameTimer
+            .start(); // Starting game timer from 10s for other player after timeout
       }),
     );
   }
 
   void _onCellTapped(int row, int col) {
+    // Check if marble can be placed
     if (gameWon || !gameBoard.placeMarble(row, col, Marble(currentPlayer))) {
       return;
     }
 
+    // Check win condition
     setState(() {
       gameWon = gameBoard.checkWin();
     });
 
+    // Save move to history
     saveMoveToHistory();
 
+    // If a player wins
     if (gameWon && gameBoard.winningPlayer != null) {
       showGameEndDialog();
       // return;
     } else {
+      // If player doesn't win, swap the player after the move and start timer
+
       setState(() {
         currentPlayer =
             currentPlayer == Player.player1 ? Player.player2 : Player.player1;
       });
       gameTimer.start();
+
+      // Rotate the cells after each move
 
       Future.delayed(const Duration(milliseconds: 300), () {
         if (!gameWon) {
@@ -90,6 +99,7 @@ class _GameScreenState extends State<GameScreen> {
           });
         }
       }).then((_) {
+        // Check if any player wins after the rotation of cells
         setState(() {
           gameWon = gameBoard.checkWin();
         });
@@ -102,6 +112,7 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  // Function to save move to local storage
   void saveMoveToHistory() {
     if (gameHistory.isNotEmpty) {
       gameHistory.last.add(
@@ -111,6 +122,7 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  // Disposing off the timer
   @override
   void dispose() {
     gameTimer.cancel();
@@ -122,14 +134,40 @@ class _GameScreenState extends State<GameScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Hero(
-          tag: 'marbleGameTitle',
-          child: GradientElement(
-            child: Text(
-              'Marble Game',
-              style: context.theme.textTheme.titleMedium,
+        title: Row(
+          children: [
+            Hero(
+              tag: 'marbleGameTitle',
+              child: GradientElement(
+                child: Text(
+                  'Marble Game',
+                  style: context.theme.textTheme.titleMedium,
+                ),
+              ),
             ),
-          ),
+            const Spacer(),
+            GestureDetector(
+              onTap: () {
+                context.push('/history-screen');
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "View history",
+                    style: context.theme.textTheme.bodySmall,
+                  ),
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  const Icon(
+                    Icons.history,
+                    color: Colors.white,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         backgroundColor: context.theme.scaffoldBackgroundColor,
       ),
@@ -139,25 +177,34 @@ class _GameScreenState extends State<GameScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Timer Widget
             TimerDisplayWidget(
                 timeLeft: timeLeft, currentPlayer: currentPlayer),
             const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                DraggableMarbleWidget(
-                    player: Player.player2, currentPlayer: currentPlayer),
-                const SizedBox(width: 20),
-                Transform.rotate(
-                  angle: 3.14159, // pie value (radians)
-                  child: Text(
-                    currentPlayer == Player.player2 ? "Your turn" : "",
-                    style: context.theme.textTheme.labelMedium,
+            SizedBox(
+              height: 100,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  // Marble Pieces given to player 2
+                  DraggableMarbleWidget(
+                    player: Player.player2,
+                    currentPlayer: currentPlayer,
+                    isJumping: timeLeft < 4 && currentPlayer == Player.player2,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 20),
+                  Transform.rotate(
+                    angle: 3.14159, // pie value (radians)
+                    child: Text(
+                      currentPlayer == Player.player2 ? "Your turn" : "",
+                      style: context.theme.textTheme.labelMedium,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 30),
+            // Game grid (4x4)
             SizedBox(
               height: 300,
               width: 300,
@@ -179,21 +226,23 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
             const SizedBox(height: 30),
-            Row(
-              children: [
-                Text(
-                  currentPlayer == Player.player1 ? "Your turn" : "",
-                  style: context.theme.textTheme.labelMedium,
-                ),
-                const SizedBox(width: 20),
-                DraggableMarbleWidget(
-                    player: Player.player1, currentPlayer: currentPlayer),
-                IconButton(
-                    onPressed: () {
-                      context.push('/history-screen');
-                    },
-                    icon: const Icon(Icons.history))
-              ],
+            SizedBox(
+              height: 100,
+              child: Row(
+                children: [
+                  Text(
+                    currentPlayer == Player.player1 ? "Your turn" : "",
+                    style: context.theme.textTheme.labelMedium,
+                  ),
+                  const SizedBox(width: 20),
+                  // Marble Pieces given to player 1
+                  DraggableMarbleWidget(
+                    player: Player.player1,
+                    currentPlayer: currentPlayer,
+                    isJumping: timeLeft < 4 && currentPlayer == Player.player1,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

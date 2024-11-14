@@ -14,6 +14,7 @@ class StartGame extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Hero widget for a subtle animation
             Hero(
               tag: 'marbleGameTitle',
               child: GradientElement(
