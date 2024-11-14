@@ -40,3 +40,9 @@ Now that the app is running, you can start playing the game by:
 
 ## Conclusion
 You have successfully pulled, set up, and run the Marble Game project on your laptop. Enjoy playing the game, and feel free to contribute or report any issues!
+
+## Watch the Screen Recording
+
+Click on the image below to watch the screen recording:
+
+[![Screen Recording](https://github.com/username/repository/blob/main/assets/screenshot_thumbnail.jpg)](https://github.com/username/repository/blob/main/assets/screen_recording.mp4)
