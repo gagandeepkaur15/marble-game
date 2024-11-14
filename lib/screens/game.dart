@@ -7,9 +7,13 @@ import 'package:four_in_a_row/models/game_board.dart';
 import 'package:four_in_a_row/models/game_history.dart';
 import 'package:four_in_a_row/models/marble.dart';
 import 'package:four_in_a_row/theme/app_theme.dart';
+import 'package:four_in_a_row/utils/game_history.dart';
+import 'package:four_in_a_row/utils/game_timer.dart';
+import 'package:four_in_a_row/widgets/draggable_marble.dart';
+import 'package:four_in_a_row/widgets/game_cell.dart';
 import 'package:four_in_a_row/widgets/gradient_element.dart';
+import 'package:four_in_a_row/widgets/timer_widget.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -24,13 +28,17 @@ class _GameScreenState extends State<GameScreen> {
   bool gameWon = false;
   GameState gameState = GameState.start;
   int timeLeft = 10;
-  Timer? timer;
+  // Timer? timer;
   List<List<GameHistory>> gameHistory = [];
+  late GameTimerUtils gameTimer;
 
   @override
   void initState() {
     super.initState();
-    _loadGames().then((_) {
+    GameHistoryUtils.loadGames().then((loadedHistory) {
+      setState(() {
+        gameHistory = loadedHistory;
+      });
       startGame();
     });
   }
@@ -42,28 +50,17 @@ class _GameScreenState extends State<GameScreen> {
       currentPlayer = Player.player1;
       gameWon = false;
       gameHistory.add([]);
-    });
-    startTimer();
-  }
-
-  void startTimer() {
-    timer?.cancel();
-    setState(() {
       timeLeft = 10;
     });
-    timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (timeLeft > 0) {
-        setState(() {
-          timeLeft--;
-        });
-      } else {
-        setState(() {
-          currentPlayer =
-              currentPlayer == Player.player1 ? Player.player2 : Player.player1;
-          timeLeft = 10;
-        });
-      }
-    });
+    gameTimer = GameTimerUtils(
+      onTick: (newTime) => setState(() => timeLeft = newTime),
+      onTimeout: () => setState(() {
+        currentPlayer =
+            currentPlayer == Player.player1 ? Player.player2 : Player.player1;
+        timeLeft = 10;
+        gameTimer.start();
+      }),
+    );
   }
 
   void _onCellTapped(int row, int col) {
@@ -85,7 +82,7 @@ class _GameScreenState extends State<GameScreen> {
         currentPlayer =
             currentPlayer == Player.player1 ? Player.player2 : Player.player1;
       });
-      startTimer();
+      gameTimer.start();
 
       Future.delayed(const Duration(milliseconds: 300), () {
         if (!gameWon) {
@@ -111,47 +108,13 @@ class _GameScreenState extends State<GameScreen> {
       gameHistory.last.add(
         GameHistory(player: currentPlayer, boardState: gameBoard.clone()),
       );
-      saveGamesToLocalStorage(gameHistory);
-    }
-  }
-
-  Future<void> saveGamesToLocalStorage(
-      List<List<GameHistory>> gameHistory) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> gamesJson = gameHistory.map((game) {
-      return jsonEncode(game
-          .map((gameHisObj) => {
-                'player': gameHisObj.player.toString(),
-                'board': gameHisObj.boardState.toJson(),
-              })
-          .toList());
-    }).toList();
-    await prefs.setStringList('gameHistory', gamesJson);
-  }
-
-  Future<void> _loadGames() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? savedGames = prefs.getStringList('gameHistory');
-
-    if (savedGames != null && savedGames.isNotEmpty) {
-      setState(() {
-        gameHistory = savedGames.map((gameJson) {
-          List<dynamic> gameHistory = jsonDecode(gameJson);
-          return gameHistory.map((gameHistoryData) {
-            final player = gameHistoryData['player'] == 'Player.player1'
-                ? Player.player1
-                : Player.player2;
-            final boardState = GameBoard.fromJson(gameHistoryData['board']);
-            return GameHistory(player: player, boardState: boardState);
-          }).toList();
-        }).toList();
-      });
+      GameHistoryUtils.saveGamesToLocalStorage(gameHistory);
     }
   }
 
   @override
   void dispose() {
-    timer?.cancel();
+    gameTimer.cancel();
     super.dispose();
   }
 
@@ -177,12 +140,14 @@ class _GameScreenState extends State<GameScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            buildTimerDisplay(),
+            TimerDisplayWidget(
+                timeLeft: timeLeft, currentPlayer: currentPlayer),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                buildDraggableMarble2(),
+                DraggableMarbleWidget(
+                    player: Player.player2, currentPlayer: currentPlayer),
                 const SizedBox(width: 20),
                 Transform.rotate(
                   angle: 3.14159, // pie value (radians)
@@ -205,7 +170,11 @@ class _GameScreenState extends State<GameScreen> {
                 itemBuilder: (context, index) {
                   final row = index ~/ 4;
                   final col = index % 4;
-                  return buildCell(row, col);
+                  return GameCellWidget(
+                      row: row,
+                      col: col,
+                      marble: gameBoard.board[row][col],
+                      onCellTapped: _onCellTapped);
                 },
                 itemCount: 16,
               ),
@@ -218,7 +187,8 @@ class _GameScreenState extends State<GameScreen> {
                   style: context.theme.textTheme.labelMedium,
                 ),
                 const SizedBox(width: 20),
-                buildDraggableMarble1(),
+                DraggableMarbleWidget(
+                    player: Player.player1, currentPlayer: currentPlayer),
                 IconButton(
                     onPressed: () {
                       context.push('/history-screen');
@@ -236,7 +206,7 @@ class _GameScreenState extends State<GameScreen> {
     showDialog(
       context: context,
       builder: (context) {
-        timer?.cancel();
+        gameTimer.cancel();
         return AlertDialog(
           title: Text(
             'Player ${gameBoard.winningPlayer == Player.player1 ? '1' : '2'} wins!',
@@ -308,118 +278,4 @@ class _GameScreenState extends State<GameScreen> {
   //     ),
   //   );
   // }
-
-  Widget buildCell(int row, int col) {
-    final marble = gameBoard.board[row][col];
-    return DragTarget<Player>(
-      onAccept: (player) {
-        if (currentPlayer == player) {
-          _onCellTapped(row, col);
-        }
-      },
-      builder: (context, candidateData, rejectedData) {
-        return Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: marble == null
-                ? LinearGradient(
-                    colors: [
-                      context.theme.primaryColor,
-                      context.theme.highlightColor,
-                    ],
-                  )
-                : null,
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: marble == null
-                  ? context.theme.scaffoldBackgroundColor
-                  : (marble.player == Player.player1
-                      ? Colors.blue
-                      : Colors.purple),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget buildDraggableMarble1() {
-    return AbsorbPointer(
-      absorbing: currentPlayer != Player.player1,
-      child: Draggable<Player>(
-        data: currentPlayer,
-        // child remaining behind when item dragged
-        feedback: Icon(
-          Icons.circle,
-          color: currentPlayer == Player.player1
-              ? Colors.blue
-              : Colors.blue.withOpacity(0.2),
-          size: 40,
-        ),
-        childWhenDragging: Opacity(
-          opacity: 0.5,
-          child: Icon(
-            Icons.circle,
-            color: currentPlayer == Player.player1
-                ? Colors.blue
-                : Colors.blue.withOpacity(0.2),
-            size: 40,
-          ),
-        ),
-        child: Icon(
-          Icons.circle,
-          color: currentPlayer == Player.player1
-              ? Colors.blue
-              : Colors.blue.withOpacity(0.2),
-          size: 40,
-        ),
-      ),
-    );
-  }
-
-  Widget buildDraggableMarble2() {
-    return AbsorbPointer(
-      absorbing: currentPlayer != Player.player2,
-      child: Draggable<Player>(
-        data: currentPlayer,
-        // child remaining behind when item dragged
-        feedback: Icon(
-          Icons.circle,
-          color: currentPlayer == Player.player1
-              ? Colors.purple.withOpacity(0.2)
-              : Colors.purple,
-          size: 40,
-        ),
-        childWhenDragging: Opacity(
-          opacity: 0.5,
-          child: Icon(
-            Icons.circle,
-            color: currentPlayer == Player.player1
-                ? Colors.purple.withOpacity(0.2)
-                : Colors.purple,
-            size: 40,
-          ),
-        ),
-        child: Icon(
-          Icons.circle,
-          color: currentPlayer == Player.player1
-              ? Colors.purple.withOpacity(0.2)
-              : Colors.purple,
-          size: 40,
-        ),
-      ),
-    );
-  }
-
-  Widget buildTimerDisplay() {
-    return Text(
-      'Time left: $timeLeft s',
-      style: context.theme.textTheme.labelMedium?.copyWith(
-        color: currentPlayer == Player.player1 ? Colors.blue : Colors.purple,
-      ),
-    );
-  }
 }
